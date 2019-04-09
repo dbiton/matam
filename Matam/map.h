@@ -36,10 +36,7 @@
 */
 
 /** Type for defining the map */
-typedef struct Maps{
-    char** ptr_str_arr;
-    int* ptr_key_arr;
-}Map;
+typedef struct Map_t* Map;
 
 /** Type used for returning error codes from map functions */
 typedef enum MapResult_t {
@@ -52,10 +49,8 @@ typedef enum MapResult_t {
 
 /** Data element data type for map container */
 typedef void *MapDataElement;
-typedef void *MapDataElement;
 
 /** Key element data type for map container */
-typedef void *MapKeyElement;
 typedef void *MapKeyElement;
 
 /** Type of function for copying a data element of the map */
