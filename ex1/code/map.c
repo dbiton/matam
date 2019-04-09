@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "map.h"
 #include <assert.h>
+#include "map.h"
 
 struct Map_t{
     MapDataElement* data_elements;
@@ -74,6 +74,9 @@ int mapGetSize(Map map){
 }
 
 bool mapContains(Map map, MapKeyElement element){
+    if (map == NULL || element == NULL){
+        return false;
+    }
     MAP_FOREACH(MapKeyElement,iterator,map){
         if (map->compareKeyElements(element,iterator) == 0){
             return true;
@@ -86,20 +89,31 @@ MapResult mapPut(Map map, MapKeyElement keyElement, MapDataElement dataElement){
     if (map == NULL){
         return MAP_NULL_ARGUMENT;
     }
+    MAP_FOREACH(MapKeyElement,iterator,map){
+        if (map->compareKeyElements(keyElement,iterator) == 0){
+            return MAP_ITEM_ALREADY_EXISTS;
+        }
+        else if (map->compareKeyElements(keyElement,iterator) > 0){
+            //put key element in the list before the iterator current value
+            return MAP_SUCCESS;
+        }
+    }
+    //add key element to end of list
     return MAP_SUCCESS;
 }
 
-MapDataElement mapGet(Map map, MapKeyElement keyElement){
-    if (map == NULL){
+MapDataElement mapGet(Map map, MapKeyElement keyElement) {
+    if (map == NULL) {
         return NULL;
     }
     int old_iterator = map->iterator;
-    MAP_FOREACH(MapKeyElement,iterator,map){
-        if (map->compareKeyElements(keyElement,iterator) == 0){
+    MAP_FOREACH(MapKeyElement, iterator, map) {
+        if (map->compareKeyElements(keyElement, iterator) == 0) {
             return
-            map ->iterator = old_iterator;
+                    map->iterator = old_iterator;
+        }
+        map->iterator = old_iterator;
     }
-    map ->iterator = old_iterator;
 }
 
 MapResult mapRemove(Map map, MapKeyElement keyElement){
@@ -117,15 +131,32 @@ MapResult mapRemove(Map map, MapKeyElement keyElement){
 }
 
 MapKeyElement mapGetFirst(Map map){
-
+    MapKeyElement *ptr = map->key_elements;
+    MapKeyElement min_key = *ptr;
+    while (*++ptr){
+        if (map->compareKeyElements(*ptr,min_key)<0){
+            min_key = *ptr;
+        }
+    }
+    return min_key;
 }
 
 MapKeyElement mapGetNext(Map map){
-    //if supplied with null map pointer, reached end of map or the iterator is in an invalid state for some reason.
-    if (map == NULL || !mapGetSize(map)<++map->iterator || map->iterator<0){
+    map->iterator++;
+    if (map == NULL || !mapGetSize(map)>map->iterator){
+        map->iterator--;
         return NULL;
     }
-    return
+
+    MapKeyElement *ptr = map->key_elements;
+    MapKeyElement cur_key = ;
+    MapKeyElement next_key = *ptr;
+    while (*++ptr){
+        if (map->compareKeyElements(*ptr,next_key)>0 && map->compareKeyElements(*ptr,next_key)<0){
+            next_key = *ptr;
+        }
+    }
+    return next_key;
 }
 
 MapResult mapClear(Map map){
