@@ -3,7 +3,14 @@
 #include <assert.h>
 #include "map.h"
 
+typedef struct node{
+    MapDataElement data;
+    MapKeyElement key;
+    struct node* next;
+} *Node;
+
 struct Map_t{
+    Node first_node;
     MapDataElement* data_elements;
     MapKeyElement* key_elements;
     int iterator;
