@@ -1,35 +1,20 @@
 #ifndef EUROVISION_H_
 #define EUROVISION_H_
 
-#include "list.h"
+#include "list.h";
 
-//Dvir's addition
-#define JUDGE_RESULTS_NUM 10
 
-typedef struct judge_t {
-    unsigned int judgeId;
-    char *judgeName;
-    int judgeResults[JUDGE_RESULTS_NUM];
-} Judge;
+typedef struct judge_t *Judge;
 
-typedef struct state_t{
-    unsigned int stateId;
-    char *stateName;
-    char *songName;
-    List voteList;
-} State;
+typedef struct state_t *State;
 
-//to be used inside a list
-typedef struct voteEntry_t{
-    unsigned int votes;
-    Country country;
-} voteEntry;
-//
+typedef struct vote_entry_t *VoteEntry;
 
 typedef enum eurovisionResult_t {
     EUROVISION_NULL_ARGUMENT,
     EUROVISION_OUT_OF_MEMORY,
     EUROVISION_INVALID_ID,
+    EUROVISION_INVALID_NAME,
     EUROVISION_STATE_ALREADY_EXIST,
     EUROVISION_STATE_NOT_EXIST,
     EUROVISION_JUDGE_ALREADY_EXIST,
@@ -69,5 +54,12 @@ List eurovisionRunAudienceFavorite(Eurovision eurovision);
 
 List eurovisionRunGetFriendlyStates(Eurovision eurovision);
 
+Judge judgeCopy(Judge judge);
+
+void judgeFree(Judge judge);
+
+State stateCopy(State state);
+
+void stateFree(State state);
 
 #endif /* EUROVISION_H_ */
