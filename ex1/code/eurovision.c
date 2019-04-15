@@ -11,6 +11,8 @@
 #define LAST_VALID_CHAR 'z'
 #define FIRST_VALID_CHAR 'a'
 #define VALID_CHAR ' '
+#define DELIMITER_LEN 3
+#define DELIMITER ' _ '
 
 struct eurovision_t{
     List Judges;
@@ -308,4 +310,34 @@ List eurovisionRunContest (Eurovision eurovision, int audiencePercent){
     }
     listSort(eurovision->States,compareStates);
     return eurovision->States;
+}
+
+int getFirstPlace(State state){
+    listSort(state->voteList,compareVoteEntry);
+    VoteEntry voteEntry;
+    LIST_FOREACH(VoteEntry,curVoteEntry,state->voteList){
+        voteEntry = curVoteEntry;
+    }
+    return voteEntry;
+}
+
+char *pairStates(char *firstState,char *secondState){
+    int strLength = strlen(firstState)+strlen(secondState)+DELIMITER_LEN;
+    char *str = malloc(sizeof(char)*strLength);
+    char *delimiter = DELIMITER;
+    strcpy(str,firstState);
+    strcpy(str+strlen(firstState),delimiter);
+    strcpy(str+strlen(firstState)+DELIMITER_LEN,secondState);
+}
+
+List eurovisionRunGetFriendlyStates (Eurovision eurovision){
+    List friendlyStates = listCreate(strcpy,free);
+    LIST_FOREACH(State,curState,eurovision->States){
+        LIST_FOREACH(State,curStateCompare,eurovision->States){
+            if (curState->stateId == getFirstPlace(curStateCompare) && strcmp(curState->stateName,curStateCompare->stateName)<=0){
+                listInsertFirst(friendlyStates,pairStates(curState->stateName,curStateCompare->stateName));
+            }
+        }
+    }
+    return listSort(friendlyStates,strcmp);
 }
