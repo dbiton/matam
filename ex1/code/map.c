@@ -1,18 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "map.h"
-
-typedef struct node{
-    MapDataElement data;
-    MapKeyElement key;
-    struct node* next;
-} *Node;
 
 struct Map_t{
     Node first_node;
-    MapDataElement* data_elements;
-    MapKeyElement* key_elements;
+    int size;
     int iterator;
     copyMapDataElements copyDataElement;
     copyMapKeyElements copyKeyElement;
@@ -20,6 +14,12 @@ struct Map_t{
     freeMapKeyElements freeKeyElement;
     compareMapKeyElements compareKeyElements;
 };
+
+void freeNode(Node node,Map map){
+    map->freeDataElement(node->data);
+    map->freeKeyElement(node->key);
+    free(node);
+}
 
 Map mapCreate(copyMapDataElements copyDataElement,
               copyMapKeyElements copyKeyElement,
@@ -35,13 +35,14 @@ Map mapCreate(copyMapDataElements copyDataElement,
     if (map == NULL){
         return NULL;
     }
-    map->key_elements = malloc(sizeof(MapKeyElement));
-    map->data_elements = malloc(sizeof(MapDataElement));
-    if (map->data_elements == NULL || map->key_elements == NULL){
-        freeDataElement(map);
-        freeKeyElement(map);
+    map->first_node = malloc(sizeof(Node));
+    if (map->first_node == NULL){
+        mapDestroy(map);
         return NULL;
     }
+    map->first_node->nextNode = NULL;
+    map->first_node->prevNode = NULL;
+    map->size = 0;
     map->iterator = 0;
     map->copyDataElement = copyDataElement;
     map->copyKeyElement = copyKeyElement;
@@ -52,8 +53,8 @@ Map mapCreate(copyMapDataElements copyDataElement,
 }
 
 void mapDestroy(Map map){
-    if (mapClear(map)!=MAP_SUCCESS){
-        return;
+    MAP_FOREACH(Node,curNode,map){
+        freeNode(curNode,map);
     }
     free(map);
 }
@@ -62,10 +63,10 @@ Map mapCopy(Map map) {
     Map map_copy = mapCreate(map->copyDataElement, map->copyKeyElement, map->freeDataElement,
                                map->freeKeyElement, map->compareKeyElements);
     //checking if mapCreate failed. mapCreate may fail if supplied functions are null, or in case of a memory error.
-    if (map_copy == NULL){ //
+    if (map_copy == NULL){
         return NULL;
     }
-    MAP_FOREACH(MapKeyElement,iterator,map){
+    MAP_FOREACH(Node,iterator,map){
         map_copy->copyDataElement(mapGet(map,iterator));
         map_copy->copyKeyElement(iterator);
     }
@@ -73,11 +74,7 @@ Map mapCopy(Map map) {
 }
 
 int mapGetSize(Map map){
-    int size = 0;
-    MAP_FOREACH(MapKeyElement,iterator,map){
-        size++;
-    }
-    return size>0 ? size : -1;
+    return map->size>0 ? map->size : -1;
 }
 
 bool mapContains(Map map, MapKeyElement element){
@@ -92,60 +89,97 @@ bool mapContains(Map map, MapKeyElement element){
     return false;
 }
 
+bool insertNode(Node prevNode,MapKeyElement keyElement, MapDataElement dataElement){
+    Node newNode = malloc(sizeof(Node));
+    if (newNode == NULL){
+        return false;
+    }
+    newNode->nextNode = prevNode->nextNode;
+    prevNode->nextNode = newNode;
+    newNode->key = keyElement;
+    newNode->data = dataElement;
+    return true;
+}
+
 MapResult mapPut(Map map, MapKeyElement keyElement, MapDataElement dataElement){
     if (map == NULL){
         return MAP_NULL_ARGUMENT;
     }
-    MAP_FOREACH(MapKeyElement,iterator,map){
-        if (map->compareKeyElements(keyElement,iterator) == 0){
+    //map size is 0
+    if (map->first_node->data == NULL){
+        map->first_node->data = dataElement;
+        map->first_node->key = keyElement;
+        return MAP_SUCCESS;
+    }
+    //map size is 1
+    if (map->first_node->nextNode == NULL){
+        if (map->compareKeyElements(map->first_node->key,keyElement)<0){
+            Node newNode = malloc(sizeof(Node));
+            if (newNode == false){
+                return MAP_OUT_OF_MEMORY;
+            }
+            newNode->nextNode = map->first_node;
+            map->first_node = newNode;
+            newNode->key = keyElement;
+            newNode->data = dataElement;
+        }
+        else if (map->compareKeyElements(map->first_node->key,keyElement)>0){
+            if (insertNode(map->first_node,keyElement,dataElement)==false){
+                return  MAP_OUT_OF_MEMORY;
+            }
+        }
+        return MAP_ITEM_ALREADY_EXISTS;
+    }
+    //map size >= 2
+    Node prev_node = map->first_node;
+    Node cur_node = mapGetNext(map);
+
+    for (int i = 0; i<map->size; i++){
+        if (map->compareKeyElements(cur_node->key,keyElement)==0){
             return MAP_ITEM_ALREADY_EXISTS;
         }
-        else if (map->compareKeyElements(keyElement,iterator) > 0){
-            //put key element in the list before the iterator current value
+        else if (map->compareKeyElements(cur_node->key,keyElement)<0){
+            if (insertNode(prev_node,keyElement,dataElement)==false) {
+                return MAP_OUT_OF_MEMORY;
+            }
             return MAP_SUCCESS;
         }
+        prev_node = cur_node;
+        cur_node = mapGetNext(map);
     }
-    //add key element to end of list
-    return MAP_SUCCESS;
 }
 
 MapDataElement mapGet(Map map, MapKeyElement keyElement) {
     if (map == NULL) {
         return NULL;
     }
-    int old_iterator = map->iterator;
-    MAP_FOREACH(MapKeyElement, iterator, map) {
-        if (map->compareKeyElements(keyElement, iterator) == 0) {
-            return
-                    map->iterator = old_iterator;
+    Node curNode = mapGetFirst(map);
+    while (curNode!=NULL){
+        if (map->compareKeyElements(curNode->key,keyElement)==0){
+            return curNode->data;
         }
-        map->iterator = old_iterator;
+        curNode = mapGetNext(map);
     }
+    return NULL;
 }
 
 MapResult mapRemove(Map map, MapKeyElement keyElement){
     if (map == NULL){
         return MAP_NULL_ARGUMENT;
     }
-    MAP_FOREACH(MapKeyElement,iterator,map){
-        if (map->compareKeyElements(keyElement,iterator) == 0){
-            map->freeDataElement(mapGet(map,iterator));
-            map->freeKeyElement(iterator);
-            return MAP_SUCCESS;
-        }
+    Node prevNode = mapGetFirst(map);
+    Node nextNode = curNode;
+    while (curNode!=NULL && map->compareKeyElements(curNode,keyElement)>0){
+        if ()
+        curNode = nextNode;
+        nextNode = mapGetNext(map);
+        return MAP_SUCCESS;
     }
     return MAP_ITEM_DOES_NOT_EXIST;
 }
 
 MapKeyElement mapGetFirst(Map map){
-    MapKeyElement *ptr = map->key_elements;
-    MapKeyElement min_key = *ptr;
-    while (*++ptr){
-        if (map->compareKeyElements(*ptr,min_key)<0){
-            min_key = *ptr;
-        }
-    }
-    return min_key;
+    return map->first_node->key;
 }
 
 MapKeyElement mapGetNext(Map map){
@@ -155,15 +189,11 @@ MapKeyElement mapGetNext(Map map){
         return NULL;
     }
 
-    MapKeyElement *ptr = map->key_elements;
-    MapKeyElement cur_key = ;
-    MapKeyElement next_key = *ptr;
-    while (*++ptr){
-        if (map->compareKeyElements(*ptr,next_key)>0 && map->compareKeyElements(*ptr,next_key)<0){
-            next_key = *ptr;
-        }
+    Node returnNode = mapGetFirst(map);
+    for (int i = 0; i<map->iterator;i++){
+        returnNode = returnNode->next;
     }
-    return next_key;
+    return returnNode->key;
 }
 
 MapResult mapClear(Map map){
