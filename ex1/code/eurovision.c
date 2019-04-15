@@ -6,6 +6,8 @@
 #include "eurovision.h"
 
 #define JUDGE_VOTES 10
+#define MAX_SCORE 12
+#define SCORE_SWITCH 8
 #define LAST_VALID_CHAR 'z'
 #define FIRST_VALID_CHAR 'a'
 #define VALID_CHAR ' '
@@ -25,6 +27,7 @@ struct state_t{
     unsigned int stateId;
     char *stateName;
     char *songName;
+    int score;
     List voteList;
 };
 
@@ -124,15 +127,36 @@ bool isValidString(char *string){
     return true;
 }
 
-bool containsState(Eurovision eurovision,int stateId){
+bool arrContains(int *array,int value){
+    while (*array){
+        if (*array == value){
+            return true;
+        }
+        array++;
+    }
+    return false;
+}
+
+Judge getJudgeVoted(Eurovision eurovision,int stateId){
+    Judge tmpJudge = judgeCopy(listGetFirst(eurovision->Judges));
+    while (tmpJudge != NULL){
+        if (arrContains(tmpJudge->judgeResults,stateId)){
+            return listGetCurrent(eurovision->Judges);
+        }
+        tmpJudge = listGetNext(eurovision->Judges);
+    }
+    return NULL;
+}
+
+State getState(Eurovision eurovision,int stateId){
     State tmpState = stateCopy(listGetFirst(eurovision->States));
     while (tmpState != NULL){
         if (tmpState->stateId == stateId){
-            return true;
+            return listGetCurrent(eurovision->States);
         }
         tmpState = listGetNext(eurovision->States);
     }
-    return false;
+    return NULL;
 }
 
 EurovisionResult isValidState(Eurovision eurovision,int stateId, const char *stateName, const char *songName){
@@ -142,10 +166,15 @@ EurovisionResult isValidState(Eurovision eurovision,int stateId, const char *sta
     if (!isValidString(stateName) || !isValidString(songName)){
         return EUROVISION_INVALID_NAME;
     }
-    if (containsState(eurovision,stateId)){
+    if (getState(eurovision,stateId)!=NULL){
         return EUROVISION_STATE_ALREADY_EXIST;
     }
     return EUROVISION_SUCCESS;
+}
+
+EurovisionResult outOfMemory(){
+    //free all and exit
+    return EUROVISION_OUT_OF_MEMORY;
 }
 
 EurovisionResult eurovisionAddState(Eurovision eurovision,int stateId, const char *stateName, const char *songName){
@@ -158,15 +187,125 @@ EurovisionResult eurovisionAddState(Eurovision eurovision,int stateId, const cha
     }
     State newState = malloc(sizeof(State));
     if (newState == NULL){
-        return EUROVISION_OUT_OF_MEMORY;
+        return outOfMemory();
     }
     newState->stateId = stateId;
     newState->songName = malloc(sizeof(char)*strlen(songName));
     newState->stateName = malloc(sizeof(char)*strlen(stateName));
     if (newState->songName == NULL || newState->stateName == NULL){
-        return EUROVISION_OUT_OF_MEMORY;
+        return outOfMemory();
     }
     strcpy(newState->songName,songName);
     strcpy(newState->stateName,stateName);
     return EUROVISION_SUCCESS;
+}
+
+EurovisionResult eurovisionRemoveState(Eurovision eurovision, int stateId){
+    if (stateId<0){
+        return EUROVISION_INVALID_ID;
+    }
+    State statePointer = getState(eurovision,stateId);
+    if (statePointer==NULL){
+        return EUROVISION_STATE_NOT_EXIST;
+    }
+    Judge tmpJudge = getJudgeVoted(eurovision,stateId);
+    do{
+        judgeFree(tmpJudge);
+        tmpJudge = getJudgeVoted(eurovision,stateId);
+    }while(tmpJudge != NULL);
+    stateFree(statePointer);
+    return EUROVISION_SUCCESS;
+}
+
+VoteEntry entryGet(List list, int stateId){
+    VoteEntry tmpEntry = listGetFirst(list);
+    while (tmpEntry!= NULL){
+        if (tmpEntry->state == stateId){
+            return tmpEntry;
+        }
+        tmpEntry = listGetNext(list);
+    }
+    return NULL;
+}
+
+EurovisionResult eurovisionAddVote(Eurovision eurovision, int stateGiverId, int stateTakerId){
+    if (eurovision == NULL){
+        return EUROVISION_NULL_ARGUMENT;
+    }
+    if (stateGiverId<0 || stateTakerId<0){
+        return EUROVISION_INVALID_ID;
+    }
+    State stateGiver = getState(eurovision,stateGiverId);
+    State stateTaker = getState(eurovision,stateTakerId);
+    if (stateGiver == NULL || stateTaker == NULL){
+        return EUROVISION_STATE_NOT_EXIST;
+    }
+    List voteList = stateGiver->voteList;
+    VoteEntry voteEntry = entryGet(voteList,stateTaker);
+    if (voteEntry != NULL){
+        voteEntry->votes += 1;
+        return EUROVISION_SUCCESS;
+    }
+    voteEntry = malloc(sizeof(VoteEntry));
+    voteEntry->votes = 1;
+    voteEntry->state = stateTaker;
+    listInsertFirst(voteList,voteEntry);
+    return EUROVISION_SUCCESS;
+}
+
+int compareVoteEntry(VoteEntry voteEntry1,VoteEntry voteEntry2){
+    return voteEntry1->votes-voteEntry2->votes;
+}
+
+double avgJudgeScore(List judges,int stateId){
+    int judgesScoreSum = 0;
+    LIST_FOREACH(Judge,curJudge,judges){
+        int curScore = MAX_SCORE;
+        int *curArray = curJudge->judgeResults;
+        for(int i = 0; i<JUDGE_VOTES; i++){
+            if (*curArray == stateId){
+                judgesScoreSum+=curScore;
+                break;
+            }
+            if (curScore <= SCORE_SWITCH){
+                curScore -= 1;
+            } else {
+                curScore -= 2;
+            }
+        }
+    }
+    return judgesScoreSum/listGetSize(judges);
+}
+
+double avgStateScore(List states,int stateId){
+    int statesScoreSum = 0;
+    LIST_FOREACH(State,curState,states){
+        int curScore = 1;
+        listSort(curState->voteList,compareVoteEntry);
+        LIST_FOREACH(VoteEntry,curVoteEntry,curState->voteList){
+            if (curVoteEntry->state == stateId){
+                statesScoreSum+=curScore;
+                break;
+            }
+            if (curScore >= SCORE_SWITCH){
+                curScore += 2;
+            } else {
+                curScore += 1;
+            }
+        }
+    }
+    return statesScoreSum/listGetSize(states);
+}
+
+int compareStates(State state1, State state2){
+    state1->score==state2->score ? state1->stateId-state2->stateId : state1->score-state2->score;
+}
+
+List eurovisionRunContest (Eurovision eurovision, int audiencePercent){
+    LIST_FOREACH(State,curState,eurovision->States){
+        curState->score = (int)((audiencePercent/100)*avgStateScore(eurovision->States,curState->stateId) +
+                ((100-audiencePercent)/100)*avgJudgeScore(eurovision->Judges,curState->stateId));
+    }
+    listSort(eurovision->States,compareStates);
+    return eurovision->States;
 }
