@@ -1,0 +1,141 @@
+
+TEST 1.1
+[Israel/Song_Israel/175/Singer_Israel]
+
+TEST 1.2
+[UK/Song_UK/170/Singer_UK]
+[Australia/Song_Australia/180/Singer_Australia]
+
+TEST 1.3
+Israel
+Song_Israel
+175
+Singer_Israel
+
+TEST 1.4
+0
+
+TEST 1.5
+[Israel/new_name/140/new_singer]
+[Israel/Song_Israel/175/Singer_Israel]
+
+TEST 1.6
+{
+Registration
+[Australia/Song_Australia/180/Singer_Australia]
+[Cyprus/Song_Cyprus/172/Singer_Cyprus]
+[Israel/Song_Israel/175/Singer_Israel]
+[UK/Song_UK/170/Singer_UK]
+}
+
+
+TEST 1.7
+{
+Registration
+[Israel/Song_Israel/175/Singer_Israel]
+[UK/Song_UK/170/Singer_UK]
+}
+
+{
+Registration
+[Australia/Song_Australia/180/Singer_Australia]
+[Cyprus/Song_Cyprus/172/Singer_Cyprus]
+[Israel/Song_Israel/175/Singer_Israel]
+[UK/Song_UK/170/Singer_UK]
+}
+
+
+TEST 1.8
+10
+TEST 1.9
+[UK/Song_UK/170/Singer_UK]
+[UK/Song_UK/170/Singer_UK]
+[France/Song_France/190/Singer_France]
+[France/Song_France/179/Singer_France]
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(0) Judge(0)
+Israel : Regular(0) Judge(0)
+UK : Regular(0) Judge(0)
+}
+
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(0) Judge(0)
+Israel : Regular(0) Judge(0)
+UK : Regular(0) Judge(0)
+}
+
+
+TEST 1.10
+10------------------------------
+
+TEST 1.11
+Israel
+1
+<Israel/Regular>
+1
+<Israel/Judge>
+
+TEST 1.12
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(0) Judge(0)
+Israel : Regular(0) Judge(0)
+UK : Regular(0) Judge(0)
+}
+
+
+TEST 1.13
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(5) Judge(0)
+Israel : Regular(0) Judge(0)
+UK : Regular(0) Judge(0)
+}
+
+
+TEST 1.14
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(5) Judge(0)
+Israel : Regular(0) Judge(0)
+UK : Regular(0) Judge(0)
+}
+
+5
+
+TEST 1.15
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(6) Judge(0)
+Israel : Regular(1) Judge(0)
+UK : Regular(1) Judge(0)
+}
+
+
+TEST 1.16
+{
+Voting
+Australia : Regular(0) Judge(0)
+Cyprus : Regular(7) Judge(0)
+Israel : Regular(1) Judge(0)
+UK : Regular(1) Judge(0)
+}
+
+
+TEST 1.17
+{
+Voting
+Australia : Regular(0) Judge(8)
+Cyprus : Regular(7) Judge(12)
+Israel : Regular(1) Judge(0)
+UK : Regular(1) Judge(10)
+}
+
