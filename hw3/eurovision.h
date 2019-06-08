@@ -27,11 +27,12 @@ using std::ostream;
 //---------------------------------------------------
 //this is where we will define values, in order to make the code more readable and avoid using "magic numbers".
 
-const int DEFAULT_MAX_SONG_LEN = 180; //in seconds
-const int DEFAULT_MAX_PARTICIPANTS = 26;
-const int DEFAULT_MAX_REGULAR_VOTES = 5;
-const int DEAFULT_INITIAL_ARRAY_SIZE = 8;
-const int DEAFULT_ARRAY_INCREASE_FACTOR = 2;
+const int MAX_SONG_LEN = 180; //in seconds
+const int MAX_PARTICIPANTS = 26;
+const int MAX_REGULAR_VOTES = 5;
+const int INITIAL_ARRAY_SIZE = 8;
+const int ARRAY_INCREASE_FACTOR = 2;
+const int JUDGE_VOTE_ARRAY_SIZE = 10; //DO NOT CHANGE, IT'S HARDCODED IN!
 
 //---------------------------------------------------
 
@@ -75,18 +76,18 @@ class Voter
 // relevant private members can be defined here, if necessary.
 const int voter_type;
 const string voter_origin;
-void *votes_arr;
 int times_voted;
-int vote_arr_size;
 //this is a pointer to the first element on an array of votes that we will create to hold each voter's votes. the type
 //is void because since Vote hasn't been declared yet, we cannot use it.
 //
 public :
     Voter(const string& v_origin, const int v_type = Regular);
-    int voterType();
-    string state();
-    int timesOfVotes();
+    Voter(const Voter& voter);
+    int voterType() const;
+    string state() const;
+    int timesOfVotes() const;
     Voter& operator++();
+    friend bool operator==(const Voter& vote1,const Voter& vote2);
 // need to define here possibly c'tr and d'tr and ONLY methods that
 // are mentioned and demonstrated in the test example that has been published.
 // NO OTHER METHODS SHOULD APPEAR HERE.
@@ -102,13 +103,17 @@ ostream& operator<<(ostream& os, const Voter& voter);
 struct Vote
 {
     const Voter voter;
+    int vote_times;
     //We shouldn't copy voter to here. we should use a reference to the associated voter, so that in case the voter's
     //name is changed for example, the name here would change as well.
     string* vote_receiver_names;
-    Vote(Voter v, string p1_name,string p2_name = NULL,string p3_name= NULL,string p4_name = NULL,string p5_name = NULL,
-            string p6_name = NULL, string p7_name = NULL,string p8_name = NULL,string p9_name = NULL,
-            string p10_name = NULL);
+    Vote(Voter v, string p1_name,string p2_name = nullptr, string p3_name= nullptr, string p4_name = nullptr,
+            string p5_name = nullptr, string p6_name = nullptr, string p7_name = nullptr, string p8_name = nullptr,
+            string p9_name = nullptr, string p10_name = nullptr);
     ~Vote();
+    Vote(const Vote& vote);
+    friend bool operator==(const Vote& vote1,const Vote& vote2);
+
 // ALL is public here.
 // need to define ONLY data members and c'tr and d'tr.
 // NO NEED to define anything else.
@@ -121,24 +126,31 @@ class MainControl
 {
 // relevant private members can be defined here, if necessary.
 int phase;
-int max_song_len;
-int max_participants;
-int max_regular_votes;
+const int max_song_len;
+const int max_participants;
+const int max_regular_votes;
 
-Participant participants[DEAFULT_INITIAL_ARRAY_SIZE];
-Voter voters[DEAFULT_INITIAL_ARRAY_SIZE];
+Participant** participants;
+int num_participants;
+int participants_arr_size;
+Voter** voters;
+int num_voters;
+int voters_arr_size;
+Vote** votes;
+int num_votes;
+int votes_arr_size;
 
 public :
-    MainControl(int max_song_len = DEFAULT_MAX_SONG_LEN, int max_participants = DEFAULT_MAX_PARTICIPANTS,
-            int max_regular_votes = DEFAULT_MAX_REGULAR_VOTES);
+    MainControl(const int max_song_len = MAX_SONG_LEN, const int max_participants = MAX_PARTICIPANTS,
+            const int max_regular_votes = MAX_REGULAR_VOTES);
     ~MainControl();
-    void setPhase(const MainControl& mc, int phase);
+    void setPhase(const int phase);
     MainControl& operator+=(const Participant& p);
     MainControl& operator-=(const Participant& p);
     MainControl& operator+=(const Vote& vote);
     friend ostream& operator <<(ostream& os, const MainControl& mc);
-    bool legalParticipant(const MainControl& mc, const Participant& p);
-    bool participate(const MainControl& mc, const string p_name);
+    bool legalParticipant(const Participant& p);
+    bool participate(const string& p_name);
 // need to define here possibly c'tr and d'tr and ONLY methods that
 // are mentioned and demonstrated in the test example that has been published.
 // NO OTHER METHODS SHOULD APPEAR HERE.

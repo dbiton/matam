@@ -327,7 +327,7 @@ TEST("1.14")
          // although it's a public method, we assume that it will be use ONLY internally
          // by other relevant operations, specially when vr21 votes successfully and needs
          // to count the number of times he has voted.
-         // NO operation of --vr1 is given.
+         // NO operation of --vr1 is given.`
 
 
 TEST("1.15")
